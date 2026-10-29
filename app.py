@@ -11,6 +11,11 @@ import streamlit as st
 from ultralytics import YOLO
 
 
+# GitHub 저장소에 함께 올려둘 고정 YOLO 모델
+APP_DIR = Path(__file__).resolve().parent
+MODEL_PATH = APP_DIR / "best.pt"
+
+
 # =========================================================
 # 기본 설정
 # =========================================================
@@ -558,11 +563,10 @@ with col1:
         key="crack_video"
     )
 
-    model_file = st.file_uploader(
-        "균열 탐지용 YOLO 모델(best.pt)을 업로드하세요.",
-        type=["pt"],
-        key="model_file"
-    )
+    if MODEL_PATH.exists():
+        st.success("✅ 균열 탐지 AI 모델(best.pt)이 앱에 내장되어 있습니다.")
+    else:
+        st.error("❌ 앱 내부에서 best.pt 파일을 찾을 수 없습니다.")
 
 with col2:
     st.subheader("🌡️ 2. 열화상 열 손실 분석")
@@ -590,9 +594,10 @@ analyze_button = st.button(
 # =========================================================
 if analyze_button:
 
-    if crack_video_file and not model_file:
+    if crack_video_file and not MODEL_PATH.exists():
         st.error(
-            "균열 영상을 분석하려면 균열 탐지용 YOLO 모델(best.pt)이 필요합니다."
+            "균열 분석용 best.pt 파일이 서버에 없습니다. "
+            "GitHub 저장소의 app.py와 같은 위치에 best.pt를 업로드하세요."
         )
         st.stop()
 
@@ -619,10 +624,7 @@ if analyze_button:
                 work_dir
             )
 
-            model_path = save_uploaded_file(
-                model_file,
-                work_dir
-            )
+            model_path = MODEL_PATH
 
             crack_progress = st.progress(0)
 
@@ -814,8 +816,9 @@ with st.expander("ℹ️ 사용 방법 / 주의사항"):
     st.markdown(
         """
         1. **실화상 균열 분석**
-           - 외벽 일반 카메라 영상과 학습된 균열 탐지 YOLO `best.pt`를 업로드합니다.
-           - 일반 `yolov8n.pt`는 균열 전용 모델이 아니므로 사용하지 않는 것을 권장합니다.
+           - 외벽 일반 카메라 영상만 업로드하면 됩니다.
+           - 균열 탐지 YOLO `best.pt`는 앱 내부에 내장되어 자동으로 불러옵니다.
+           - GitHub 저장소에서 `app.py`와 `best.pt`를 같은 폴더에 두어야 합니다.
 
         2. **열화상 분석**
            - 현재 버전은 영상의 HSV 색상을 이용해 빨강·주황·노랑 영역을
